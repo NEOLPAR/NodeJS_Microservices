@@ -21,6 +21,12 @@ class ServiceRegistry {
 
     return key;
   }
+
+  unregister(name, version, ip, port) {
+    const key = name + version + ip + port;
+    delete this.services[key];
+    return key;
+  }
 }
 
 module.exports = ServiceRegistry;
