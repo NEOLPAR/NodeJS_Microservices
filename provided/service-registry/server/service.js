@@ -18,17 +18,22 @@ module.exports = (config) => {
 
   service.put('/register/:servicename/:serviceversion/:serviceport', (req, res) => {
     const { servicename, serviceversion, serviceport } = req.params;
-    const serviceip = req.connection.remoteAddres.includes('::') ? `[${req.connection.remoteAddress}]` : req.connection.remoteAddress;
+    let serviceip = (req.headers['x-forwarded-for'] || '').split(',').pop().trim()
+      || req.connection.remoteAddress
+      || req.socket.remoteAddress
+      || req.connection.socket.remoteAddress;
+    serviceip = serviceip.includes('::') ? `[${serviceip}]` : serviceip;
 
-    const serviceKey = serviceRegistry.register( servicename, serviceversion, serviceip, serviceport);
+    const serviceKey = serviceRegistry
+      .register(servicename, serviceversion, serviceip, serviceport);
 
-    return res.json({result: serviceKey});
+    return res.json({ result: serviceKey });
   });
-  
+
   service.delete('/register/:servicename/:serviceversion/:serviceport', (req, res, next) => {
     return next('Not implemented');
   });
-  
+
   service.get('/find/:servicename/:serviceversion', (req, res, next) => {
     return next('Not implemented');
   });
