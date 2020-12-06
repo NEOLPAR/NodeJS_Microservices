@@ -2,7 +2,7 @@
 const axios = require('axios');
 const CircuitBreaker = require('../lib/CircuitBreaker');
 
-const cirtuitBreaker = new CircuitBreaker();
+const circuitBreaker = new CircuitBreaker();
 
 class SpeakersService {
   constructor({ serviceRegistryUrl, serviceVersionIdentifier }) {
@@ -68,7 +68,7 @@ class SpeakersService {
   }
 
   async callService(requestOptions) {
-    return cirtuitBreaker.callService(requestOptions);
+    return circuitBreaker.callService(requestOptions);
   }
 
   async getService(servicename) {
