@@ -2,6 +2,11 @@
 const axios = require('axios');
 const url = require('url');
 const crypto = require('crypto');
+const fs = require('fs');
+const util = require('util');
+const path = require('path');
+
+const fsExist = util.promisify(fs.exists);
 
 const CircuitBreaker = require('../lib/CircuitBreaker');
 
@@ -14,12 +19,12 @@ class SpeakersService {
     this.cache = {};
   }
 
-  async getImages(path) {
+  async getImages(imagePath) {
     const { ip, port } = await this.getService('speakers-service');
     return this.callService({
       method: 'get',
       responseType: 'stream',
-      url: `http://${ip}:${port}/images/${path}`,
+      url: `http://${ip}:${port}/images/${imagePath}`,
     });
   }
 
@@ -74,15 +79,30 @@ class SpeakersService {
   async callService(requestOptions) {
     const servicePath = url.parse(requestOptions.url).path;
     const cacheKey = crypto.createHash('md5').update(requestOptions.method + servicePath).digest('hex');
+    let cacheFile = null;
+
+    if (requestOptions.responseType && requestOptions.responseType === 'stream') {
+      cacheFile = path.join(__dirname, '..\\..\\_imagecache', cacheKey);
+    }
 
     const result = await circuitBreaker.callService(requestOptions);
 
     if (!result) {
-      if (this.cahe[cacheKey]) return this.cache[cacheKey];
+      if (this.cache[cacheKey]) return this.cache[cacheKey];
+      if (cacheFile) {
+        const exists = await fsExist(cacheFile);
+        if (exists) return fs.createReadStream(cacheFile);
+      }
       return false;
     }
 
-    this.cache[cacheKey] = result;
+    if (!cacheFile) {
+      this.cache[cacheKey] = result;
+    } else {
+      const ws = fs.createWriteStream(cacheFile);
+      result.pipe(ws);
+    }
+
     return result;
   }
 
